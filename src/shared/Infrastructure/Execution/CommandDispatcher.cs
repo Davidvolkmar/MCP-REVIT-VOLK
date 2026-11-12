@@ -241,6 +241,12 @@ namespace RvtMcp.Plugin
             Register(new Handlers.SetParameterValueByGuidHandler());
 
             // Wave 12: View Templates & Selections
+            // MCP-REVIT-VOLK: office standards (inventory / import between open documents)
+            Register(new Handlers.InventoryAnnotationStandardsHandler());
+            Register(new Handlers.ImportStandardsFromDocumentHandler());
+            Register(new Handlers.CreateExteriorDimensionChainHandler());
+            Register(new Handlers.CreateRoomSpotElevationsHandler());
+
             Register(new Handlers.ListViewTemplatesHandler());
             Register(new Handlers.CreateViewTemplateFromViewHandler());
             Register(new Handlers.ApplyViewTemplateHandler());

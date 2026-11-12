@@ -862,7 +862,7 @@
       "calls": [
         {
           "command": "create_dimensions",
-          "params": "{\"references\":[{\"elementId\":1},{\"elementId\":2}],\"view_id\":null,\"dimension_type_id\":null,\"line\":null}",
+          "params": "{\"references\":[{\"elementId\":1},{\"elementId\":2}],\"view_id\":null,\"dimension_type_id\":null,\"line\":null,\"side\":null,\"offset_mm\":null}",
           "timeout": null
         }
       ],
@@ -872,7 +872,7 @@
       "calls": [
         {
           "command": "create_dimensions",
-          "params": "{\"references\":[{\"elementId\":1},{\"elementId\":2}],\"view_id\":null,\"dimension_type_id\":null,\"line\":null}",
+          "params": "{\"references\":[{\"elementId\":1},{\"elementId\":2}],\"view_id\":null,\"dimension_type_id\":null,\"line\":null,\"side\":null,\"offset_mm\":null}",
           "timeout": null
         }
       ],
@@ -895,6 +895,28 @@
         {
           "command": "create_duct",
           "params": "{\"start_x\":1.0,\"start_y\":1.0,\"start_z\":1.0,\"end_x\":1.0,\"end_y\":1.0,\"end_z\":1.0,\"duct_type_id\":null,\"system_type_id\":null,\"level_id\":null,\"width\":null,\"height\":null,\"diameter\":null}",
+          "timeout": null
+        }
+      ],
+      "result": "Error: golden probe failure"
+    }
+  },
+  "revit_create_exterior_dimension_chain": {
+    "success": {
+      "calls": [
+        {
+          "command": "create_exterior_dimension_chain",
+          "params": "{\"side\":\"probe\",\"view_id\":null,\"tiers\":null,\"first_offset_paper_mm\":4.0,\"tier_spacing_paper_mm\":7.0,\"dimension_type_id\":null,\"grid_dimension_type_id\":null,\"dry_run\":false}",
+          "timeout": null
+        }
+      ],
+      "result": "{\r\n  \"golden_probe\": true,\r\n  \"items\": [\r\n    1,\r\n    2\r\n  ]\r\n}"
+    },
+    "failure": {
+      "calls": [
+        {
+          "command": "create_exterior_dimension_chain",
+          "params": "{\"side\":\"probe\",\"view_id\":null,\"tiers\":null,\"first_offset_paper_mm\":4.0,\"tier_spacing_paper_mm\":7.0,\"dimension_type_id\":null,\"grid_dimension_type_id\":null,\"dry_run\":false}",
           "timeout": null
         }
       ],
@@ -1335,6 +1357,28 @@
         {
           "command": "create_room_separator",
           "params": "{\"points\":[[0.0,0.0],[1000.0,0.0]],\"view_id\":null,\"level_name\":\"\",\"close_loop\":false}",
+          "timeout": null
+        }
+      ],
+      "result": "Error: golden probe failure"
+    }
+  },
+  "revit_create_room_spot_elevations": {
+    "success": {
+      "calls": [
+        {
+          "command": "create_room_spot_elevations",
+          "params": "{\"view_id\":null,\"spot_type_id\":null,\"offset_x_paper_mm\":0.0,\"offset_y_paper_mm\":-8.0,\"room_ids\":null,\"dry_run\":false}",
+          "timeout": null
+        }
+      ],
+      "result": "{\r\n  \"golden_probe\": true,\r\n  \"items\": [\r\n    1,\r\n    2\r\n  ]\r\n}"
+    },
+    "failure": {
+      "calls": [
+        {
+          "command": "create_room_spot_elevations",
+          "params": "{\"view_id\":null,\"spot_type_id\":null,\"offset_x_paper_mm\":0.0,\"offset_y_paper_mm\":-8.0,\"room_ids\":null,\"dry_run\":false}",
           "timeout": null
         }
       ],
@@ -3051,6 +3095,50 @@
         {
           "command": "import_cad_to_view",
           "params": "{\"path\":\"C:\\\\probe\\\\file.dat\",\"view_id\":null,\"link\":false,\"placement\":\"origin\",\"unit\":\"default\",\"this_view_only\":true,\"visible_layers_only\":true}",
+          "timeout": null
+        }
+      ],
+      "result": "Error: golden probe failure"
+    }
+  },
+  "revit_import_standards_from_document": {
+    "success": {
+      "calls": [
+        {
+          "command": "import_standards_from_document",
+          "params": "{\"source_document_title\":\"probe\",\"element_ids\":null,\"dry_run\":true}",
+          "timeout": null
+        }
+      ],
+      "result": "{\r\n  \"golden_probe\": true,\r\n  \"items\": [\r\n    1,\r\n    2\r\n  ]\r\n}"
+    },
+    "failure": {
+      "calls": [
+        {
+          "command": "import_standards_from_document",
+          "params": "{\"source_document_title\":\"probe\",\"element_ids\":null,\"dry_run\":true}",
+          "timeout": null
+        }
+      ],
+      "result": "Error: golden probe failure"
+    }
+  },
+  "revit_inventory_annotation_standards": {
+    "success": {
+      "calls": [
+        {
+          "command": "inventory_annotation_standards",
+          "params": "{\"document_title\":null,\"sections\":null,\"name_contains\":null,\"limit\":300}",
+          "timeout": null
+        }
+      ],
+      "result": "{\r\n  \"golden_probe\": true,\r\n  \"items\": [\r\n    1,\r\n    2\r\n  ]\r\n}"
+    },
+    "failure": {
+      "calls": [
+        {
+          "command": "inventory_annotation_standards",
+          "params": "{\"document_title\":null,\"sections\":null,\"name_contains\":null,\"limit\":300}",
           "timeout": null
         }
       ],

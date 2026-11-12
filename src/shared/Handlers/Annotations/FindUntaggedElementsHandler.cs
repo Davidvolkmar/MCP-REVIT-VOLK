@@ -213,31 +213,7 @@ namespace RvtMcp.Plugin.Handlers
 
         private static Category ResolveCategory(Document doc, string categoryName)
         {
-            if (string.IsNullOrWhiteSpace(categoryName)) return null;
-
-            foreach (Category cat in doc.Settings.Categories)
-            {
-                if (string.Equals(cat.Name, categoryName, StringComparison.OrdinalIgnoreCase))
-                    return cat;
-            }
-
-            if (Enum.TryParse<BuiltInCategory>(categoryName, true, out var bic))
-            {
-                try { return Category.GetCategory(doc, bic); } catch { }
-            }
-
-            foreach (BuiltInCategory value in Enum.GetValues(typeof(BuiltInCategory)))
-            {
-                var name = value.ToString();
-                if (name.Equals(categoryName, StringComparison.OrdinalIgnoreCase) ||
-                    name.EndsWith(categoryName, StringComparison.OrdinalIgnoreCase) ||
-                    name.Replace("OST_", "").Equals(categoryName, StringComparison.OrdinalIgnoreCase))
-                {
-                    try { return Category.GetCategory(doc, value); } catch { }
-                }
-            }
-
-            return null;
+            return CategoryNameResolver.Resolve(doc, categoryName);
         }
 
         private static HashSet<long> GetTaggedElementIds(IndependentTag tag)

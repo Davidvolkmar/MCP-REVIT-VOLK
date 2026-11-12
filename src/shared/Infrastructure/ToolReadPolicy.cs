@@ -102,6 +102,7 @@ namespace RvtMcp.Plugin
             "list_titleblocks",
             "list_view_filters",
             "list_view_templates",
+            "inventory_annotation_standards",
             "list_worksets",
             "load_selection",
             "measure_distance_between_elements",

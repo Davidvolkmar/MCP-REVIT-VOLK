@@ -22,6 +22,7 @@ namespace RvtMcp.Plugin.Views.Toast
             "capture_view_image", "get_material_takeoff", "compute_room_finishes",
             "list_bake_suggestions", "open_model", "manage_checkpoints",
             "accept_bake_suggestion", "dismiss_bake_suggestion",
+            "import_standards_from_document",
             // switch_target mutates session routing (spec §6.8 annotation ReadOnly=false);
             // it is a server-side meta command, not a plugin command.
             "switch_target"

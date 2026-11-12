@@ -58,6 +58,7 @@ namespace RvtMcp.Tests
                 "get_material_takeoff", "import_cad_to_view", "link_revit_model", "list_bake_suggestions",
                 "open_model", "workflow_room_documentation",
                 "switch_target", // Session navigation: repins the target binding; touches no document data.
+                "import_standards_from_document", // Copies types into the active model; name conflicts keep destination types (never overwrites).
                 "record_change" // Adds one immutable reason/link; rejects calls already assigned to any reason.
             };
             foreach (var method in Tools())

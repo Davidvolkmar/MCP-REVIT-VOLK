@@ -7,6 +7,22 @@ namespace RvtMcp.Server
     [McpServerToolType, Toolset("annotation")]
     public class AnnotationTools
     {
+        [McpServerTool(Name = "revit_inventory_annotation_standards", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false), System.ComponentModel.Description("Inventory the annotation/graphic standards of any OPEN document (project or office template, active or in the background): dimension and spot types (font, size, bold, width factor, units), text types, annotation families/tags by category, view templates, fill patterns, line styles, grid and level types. documentTitle = open document title (empty = active). sections limits output: dimension_types, text_types, annotation_symbols, view_templates, fill_patterns, line_styles, grid_level_types. Use the returned ids with revit_import_standards_from_document.")]
+        public static async Task<string> InventoryAnnotationStandards(string documentTitle = null, string[] sections = null, string nameContains = null, int limit = 300)
+            => await ToolGateway.CallAsync("inventory_annotation_standards", new { document_title = documentTitle, sections, name_contains = nameContains, limit });
+
+        [McpServerTool(Name = "revit_import_standards_from_document", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false), System.ComponentModel.Description("Copy chosen standards (dimension/text/spot types, tag families, view templates, fill patterns, line styles) from another OPEN document into the ACTIVE document, like a targeted Transfer Project Standards. elementIds are ids in the source document (from revit_inventory_annotation_standards). dryRun defaults to true: it reports what would be copied and which names already exist; run again with dryRun=false to copy. Name conflicts keep the destination's types (never overwrite).")]
+        public static async Task<string> ImportStandardsFromDocument(string sourceDocumentTitle, long[] elementIds, bool dryRun = true)
+            => await ToolGateway.CallAsync("import_standards_from_document", new { source_document_title = sourceDocumentTitle, element_ids = elementIds, dry_run = dryRun });
+
+        [McpServerTool(Name = "revit_create_exterior_dimension_chain", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false), System.ComponentModel.Description("Office-style exterior dimension chain on ONE side of a plan view, computed from the model (no coordinates needed). side = top | bottom | left | right. tiers (default all, built from the building outward): openings = outer wall faces at facade corners/steps + door/window edges; overall = outermost faces; grids = grid to grid. Placement uses PAPER distances scaled by the view scale: firstOffsetPaperMm (default 4) from the facade, tierSpacingPaperMm (default 7) between tiers. dimensionTypeId for openings/overall, gridDimensionTypeId for the grid tier (e.g. EAT_COT_2.5_M2D / EAT_COT_2.5_EJES). Run dryRun=true first to see the references per tier. v1: orthogonal straight walls; angled walls are reported as skipped.")]
+        public static async Task<string> CreateExteriorDimensionChain(string side, long? viewId = null, string[] tiers = null, double firstOffsetPaperMm = 4, double tierSpacingPaperMm = 7, long? dimensionTypeId = null, long? gridDimensionTypeId = null, bool dryRun = false)
+            => await ToolGateway.CallAsync("create_exterior_dimension_chain", new { side, view_id = viewId, tiers, first_offset_paper_mm = firstOffsetPaperMm, tier_spacing_paper_mm = tierSpacingPaperMm, dimension_type_id = dimensionTypeId, grid_dimension_type_id = gridDimensionTypeId, dry_run = dryRun });
+
+        [McpServerTool(Name = "revit_create_room_spot_elevations", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false), System.ComponentModel.Description("Place one spot elevation (level mark) per room of a plan view, on the top face of the floor under the room. spotTypeId = a spot ELEVATION type (e.g. EAT_NIV_PLANTA). The mark is offset from the room point by PAPER mm scaled by the view scale (offsetXPaperMm default 0, offsetYPaperMm default -8, i.e. below the room tag). roomIds limits the rooms. Rooms with no floor underneath are reported as skipped. Use dryRun=true to preview.")]
+        public static async Task<string> CreateRoomSpotElevations(long? viewId = null, long? spotTypeId = null, double offsetXPaperMm = 0, double offsetYPaperMm = -8, long[] roomIds = null, bool dryRun = false)
+            => await ToolGateway.CallAsync("create_room_spot_elevations", new { view_id = viewId, spot_type_id = spotTypeId, offset_x_paper_mm = offsetXPaperMm, offset_y_paper_mm = offsetYPaperMm, room_ids = roomIds, dry_run = dryRun });
+
         [McpServerTool(Name = "revit_tag_all_walls", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false), System.ComponentModel.Description("Tag all walls in current view at midpoint. Skips already-tagged walls. Returns count of new tags.")]
         public static async Task<string> TagAllWalls()
             => await ToolGateway.CallAsync("tag_all_walls");
@@ -28,13 +44,13 @@ namespace RvtMcp.Server
         public static async Task<string> CreateTextNote(string text, double x, double y, long? viewId = null, long? textTypeId = null, double width = 0, double rotationDeg = 0)
             => await ToolGateway.CallAsync("create_text_note", new { text, x, y, view_id = viewId, text_type_id = textTypeId, width, rotation_deg = rotationDeg });
 
-        [McpServerTool(Name = "revit_create_dimensions", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false), System.ComponentModel.Description("Create a dimension element in a view. references: array of Revit element-reference objects.")]
-        public static async Task<string> CreateDimensions(object[] references, long? viewId = null, long? dimensionTypeId = null, object line = null)
+        [McpServerTool(Name = "revit_create_dimensions", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false), System.ComponentModel.Description("Create a dimension element in a view. references: array (2+) of {mode, element_id} objects; mode = wall_centerline | wall_exterior_face | wall_interior_face | grid_curve | explicit_reference_stable (also needs stable_reference). Placement: prefer side + offsetMm (the line is computed outside the referenced elements: side = top | bottom | left | right, offsetMm = distance from their outer edge, default 800). line: optional explicit {start:{x,y,z}, end:{x,y,z}} in mm, overrides side/offsetMm.")]
+        public static async Task<string> CreateDimensions(object[] references, long? viewId = null, long? dimensionTypeId = null, object line = null, string side = null, double? offsetMm = null)
             => await ToolGateway.CallWithParamsAsync("create_dimensions", () =>
             {
                 var parsedReferences = McpJsonInput.RequiredArray(references, nameof(references));
                 var parsedLine = McpJsonInput.OptionalObject(line, nameof(line));
-                return new { references = parsedReferences, view_id = viewId, dimension_type_id = dimensionTypeId, line = parsedLine };
+                return new { references = parsedReferences, view_id = viewId, dimension_type_id = dimensionTypeId, line = parsedLine, side, offset_mm = offsetMm };
             });
 
         [McpServerTool(Name = "revit_create_filled_region", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false), System.ComponentModel.Description("Create a filled region element in a view. points: array of {x,y,z} point objects (mm).")]

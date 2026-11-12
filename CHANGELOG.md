@@ -29,7 +29,7 @@ Install only the [latest GitHub Release](https://github.com/bimwright/rvt-mcp/re
 
 ## Unreleased
 
-- Development source counts: `--toolsets all` **253**, adaptive bake **256**, and bare defaults **59**.
+- Development source counts: `--toolsets all` **257**, adaptive bake **260**, and bare defaults **59**.
 
 ### Document lifecycle
 

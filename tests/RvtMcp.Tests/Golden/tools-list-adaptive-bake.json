@@ -1,6 +1,6 @@
 {
   "generated_by": "ToolsListSnapshotTests",
-  "tool_count": 256,
+  "tool_count": 260,
   "tools": [
     {
       "name": "revit_accept_bake_suggestion",
@@ -1479,7 +1479,7 @@
     },
     {
       "name": "revit_create_dimensions",
-      "description_hash": "sha256:69fe28d45a86d389caf050023df4a3f643ad99025dfa9b982551c12e9a19ef75",
+      "description_hash": "sha256:58b6bf7c06b14bbfacb801cb768ca088785c2545e5b91f1074cf6c179ce64f00",
       "inputSchema": {
         "properties": {
           "dimensionTypeId": {
@@ -1490,9 +1490,17 @@
             "description": "",
             "type": "Object"
           },
+          "offsetMm": {
+            "description": "",
+            "type": "Nullable`1"
+          },
           "references": {
             "description": "",
             "type": "Object[]"
+          },
+          "side": {
+            "description": "",
+            "type": "String"
           },
           "viewId": {
             "description": "",
@@ -1572,6 +1580,56 @@
           "endX",
           "endY",
           "endZ"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "revit_create_exterior_dimension_chain",
+      "description_hash": "sha256:c560f06f1aec6322c06b1ce8551b703a804d12eea671320c5f1f4d13f9ce4735",
+      "inputSchema": {
+        "properties": {
+          "dimensionTypeId": {
+            "description": "",
+            "type": "Nullable`1"
+          },
+          "dryRun": {
+            "description": "",
+            "type": "Boolean"
+          },
+          "firstOffsetPaperMm": {
+            "description": "",
+            "type": "Double"
+          },
+          "gridDimensionTypeId": {
+            "description": "",
+            "type": "Nullable`1"
+          },
+          "side": {
+            "description": "",
+            "type": "String"
+          },
+          "tierSpacingPaperMm": {
+            "description": "",
+            "type": "Double"
+          },
+          "tiers": {
+            "description": "",
+            "type": "String[]"
+          },
+          "viewId": {
+            "description": "",
+            "type": "Nullable`1"
+          }
+        },
+        "required": [
+          "side"
         ],
         "type": "object"
       },
@@ -2433,6 +2491,46 @@
         "required": [
           "points"
         ],
+        "type": "object"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "revit_create_room_spot_elevations",
+      "description_hash": "sha256:1e710777c266f2a319a09367f6b3b651a76219c32b6c79d7753718b9ed657b7d",
+      "inputSchema": {
+        "properties": {
+          "dryRun": {
+            "description": "",
+            "type": "Boolean"
+          },
+          "offsetXPaperMm": {
+            "description": "",
+            "type": "Double"
+          },
+          "offsetYPaperMm": {
+            "description": "",
+            "type": "Double"
+          },
+          "roomIds": {
+            "description": "",
+            "type": "Int64[]"
+          },
+          "spotTypeId": {
+            "description": "",
+            "type": "Nullable`1"
+          },
+          "viewId": {
+            "description": "",
+            "type": "Nullable`1"
+          }
+        },
+        "required": [],
         "type": "object"
       },
       "annotations": {
@@ -4002,7 +4100,7 @@
     },
     {
       "name": "revit_get_available_family_types",
-      "description_hash": "sha256:7d0ab84af905a6af87653134cd861d5b23624b8ef266099231a13dc2ccdd2769",
+      "description_hash": "sha256:010f8f0147c7c2f4e27d08e37c28736f33c56f4098f8b3b6fb26b909fbadac8a",
       "inputSchema": {
         "properties": {
           "category": {
@@ -5191,6 +5289,69 @@
         "idempotentHint": false,
         "openWorldHint": false,
         "readOnlyHint": false
+      }
+    },
+    {
+      "name": "revit_import_standards_from_document",
+      "description_hash": "sha256:89fdacf750d498a529f3c96a1886e065698417879a87d02cb9739b4123f26ac7",
+      "inputSchema": {
+        "properties": {
+          "dryRun": {
+            "description": "",
+            "type": "Boolean"
+          },
+          "elementIds": {
+            "description": "",
+            "type": "Int64[]"
+          },
+          "sourceDocumentTitle": {
+            "description": "",
+            "type": "String"
+          }
+        },
+        "required": [
+          "sourceDocumentTitle",
+          "elementIds"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "revit_inventory_annotation_standards",
+      "description_hash": "sha256:224460b02a0315160bc28a16beb3c3f6c93841bfebcd7bac4003513a20464144",
+      "inputSchema": {
+        "properties": {
+          "documentTitle": {
+            "description": "",
+            "type": "String"
+          },
+          "limit": {
+            "description": "",
+            "type": "Int32"
+          },
+          "nameContains": {
+            "description": "",
+            "type": "String"
+          },
+          "sections": {
+            "description": "",
+            "type": "String[]"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
       }
     },
     {

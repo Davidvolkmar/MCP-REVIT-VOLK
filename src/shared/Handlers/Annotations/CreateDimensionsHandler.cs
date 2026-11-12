@@ -22,7 +22,7 @@ namespace RvtMcp.Plugin.Handlers
         ""type"": ""object"",
         ""required"": [""mode"", ""element_id""],
         ""properties"": {
-          ""mode"": { ""type"": ""string"", ""enum"": [""wall_centerline"", ""grid_curve"", ""explicit_reference_stable""] },
+          ""mode"": { ""type"": ""string"", ""enum"": [""wall_centerline"", ""wall_exterior_face"", ""wall_interior_face"", ""grid_curve"", ""explicit_reference_stable""] },
           ""element_id"": { ""type"": ""integer"" },
           ""stable_reference"": { ""type"": ""string"" }
         }
@@ -30,6 +30,8 @@ namespace RvtMcp.Plugin.Handlers
     },
     ""view_id"": { ""type"": ""integer"" },
     ""dimension_type_id"": { ""type"": ""integer"" },
+    ""side"": { ""type"": ""string"", ""enum"": [""top"", ""bottom"", ""left"", ""right"", ""auto""] },
+    ""offset_mm"": { ""type"": ""number"" },
     ""line"": {
       ""type"": ""object"",
       ""properties"": {
@@ -175,10 +177,29 @@ namespace RvtMcp.Plugin.Handlers
                         {
                             throw new Exception("Wall location curve is not available.");
                         }
-                        revitRef = lc.Curve.Reference;
+                        // LocationCurve.Curve.Reference is null for walls in practice;
+                        // fall back to the centerline curve exposed by wall geometry.
+                        revitRef = lc.Curve.Reference ?? FindWallCenterlineReference(wall, view, lc.Curve);
                         if (revitRef == null)
                         {
-                            throw new Exception("Revit did not expose a valid centerline Reference for this wall.");
+                            throw new Exception("Revit did not expose a valid centerline Reference for this wall. Use mode 'wall_exterior_face' or 'wall_interior_face' instead.");
+                        }
+                    }
+                    else if (string.Equals(mode, "wall_exterior_face", StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(mode, "wall_interior_face", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var wall = elem as Wall;
+                        if (wall == null)
+                        {
+                            throw new Exception("Element is not a Wall.");
+                        }
+                        var side = mode.EndsWith("exterior_face", StringComparison.OrdinalIgnoreCase)
+                            ? ShellLayerType.Exterior
+                            : ShellLayerType.Interior;
+                        revitRef = HostObjectUtils.GetSideFaces(wall, side).FirstOrDefault();
+                        if (revitRef == null)
+                        {
+                            throw new Exception("Revit did not expose a " + side + " side face for this wall.");
                         }
                     }
                     else
@@ -241,6 +262,13 @@ namespace RvtMcp.Plugin.Handlers
                         line = Line.CreateBound(startPt, endPt);
                     }
                 }
+            }
+
+            string placementNote = null;
+            if (line == null && resolvedElements.Count >= 2)
+            {
+                line = ComputePlacementLine(view, resolvedElements, request.Value<string>("side"),
+                    request.Value<double?>("offset_mm") ?? 800.0, out placementNote);
             }
 
             if (line == null && resolvedElements.Count >= 2)
@@ -331,10 +359,132 @@ namespace RvtMcp.Plugin.Handlers
                         ["z"] = Math.Round(line.GetEndPoint(1).Z * 304.8, 1)
                     }
                 },
+                ["placement"] = placementNote,
                 ["resolved_references"] = resolvedRefsInfo,
                 ["failed_references"] = failedRefsInfo,
                 ["error"] = null
             });
+        }
+
+        /// <summary>
+        /// Computes the dimension line from the referenced elements so callers never hand-compute
+        /// coordinates: the measuring direction is perpendicular to the (parallel) walls/grids, and
+        /// the line sits outside all referenced elements on the requested side, offsetMm away.
+        /// Only plan-like views (view direction ~ Z) are handled; other views return null and the
+        /// legacy fallback applies.
+        /// </summary>
+        private static Line ComputePlacementLine(View view, List<Element> elements, string side, double offsetMm, out string note)
+        {
+            note = null;
+            if (view == null || Math.Abs(view.ViewDirection.DotProduct(XYZ.BasisZ)) < 0.9) return null;
+
+            XYZ along = null; // direction of the referenced linear elements
+            foreach (var e in elements)
+            {
+                Curve c = (e.Location as LocationCurve)?.Curve ?? (e as Grid)?.Curve;
+                if (c is Line l)
+                {
+                    along = new XYZ(l.Direction.X, l.Direction.Y, 0).Normalize();
+                    break;
+                }
+            }
+            if (along == null) return null;
+
+            var measure = new XYZ(-along.Y, along.X, 0); // dimension runs across the elements
+            // Normalize orientation so "positive" along means +Y (top) or +X (right).
+            if (Math.Abs(along.Y) >= Math.Abs(along.X)) { if (along.Y < 0) along = along.Negate(); }
+            else { if (along.X < 0) along = along.Negate(); }
+            if (Math.Abs(measure.X) >= Math.Abs(measure.Y)) { if (measure.X < 0) measure = measure.Negate(); }
+            else { if (measure.Y < 0) measure = measure.Negate(); }
+
+            double mMin = double.MaxValue, mMax = double.MinValue, aMin = double.MaxValue, aMax = double.MinValue, z = 0;
+            foreach (var e in elements)
+            {
+                var bb = e.get_BoundingBox(null);
+                if (bb == null) continue;
+                z = bb.Min.Z;
+                foreach (var x in new[] { bb.Min.X, bb.Max.X })
+                foreach (var y in new[] { bb.Min.Y, bb.Max.Y })
+                {
+                    var p = new XYZ(x, y, 0);
+                    double m = p.DotProduct(measure), a = p.DotProduct(along);
+                    mMin = Math.Min(mMin, m); mMax = Math.Max(mMax, m);
+                    aMin = Math.Min(aMin, a); aMax = Math.Max(aMax, a);
+                }
+            }
+            if (mMax - mMin < 1e-6) return null;
+
+            // Elements run vertically (along ~ Y): the chain is horizontal, valid sides top/bottom.
+            bool alongIsY = Math.Abs(along.Y) >= Math.Abs(along.X);
+            var s = (side ?? "auto").Trim().ToLowerInvariant();
+            bool positive;
+            if (alongIsY) positive = s != "bottom";      // top (default) or bottom
+            else positive = s != "left";                 // right (default) or left
+            if ((alongIsY && (s == "left" || s == "right")) || (!alongIsY && (s == "top" || s == "bottom")))
+                note = "side '" + s + "' does not apply to this chain direction; used " + (alongIsY ? "top" : "right") + ".";
+
+            double offset = Math.Max(0, offsetMm) / 304.8;
+            double a0 = positive ? aMax + offset : aMin - offset;
+            var start = measure * mMin + along * a0 + new XYZ(0, 0, z);
+            var end = measure * mMax + along * a0 + new XYZ(0, 0, z);
+            note = (note == null ? "" : note + " ") + "auto placement: " + (alongIsY ? (positive ? "top" : "bottom") : (positive ? "right" : "left"))
+                   + ", " + Math.Round(offsetMm) + " mm outside the referenced elements.";
+            return Line.CreateBound(start, end);
+        }
+
+        /// <summary>
+        /// Finds a referenceable line in the wall geometry that runs parallel to (and closest to)
+        /// the wall location curve. Revit exposes the wall centerline this way when non-visible
+        /// geometry is included, while LocationCurve.Curve.Reference stays null.
+        /// </summary>
+        private static Reference FindWallCenterlineReference(Wall wall, View view, Curve locationCurve)
+        {
+            var locLine = locationCurve as Line;
+            if (locLine == null) return null; // curved walls: handled by arc-specific modes later
+
+            var options = new Options
+            {
+                ComputeReferences = true,
+                IncludeNonVisibleObjects = true
+            };
+            if (view != null && !(view is View3D) ) options.View = view;
+
+            var dir = locLine.Direction.Normalize();
+            var mid = locLine.Evaluate(0.5, true);
+            Reference best = null;
+            double bestDist = double.MaxValue;
+
+            foreach (var line in EnumerateLines(wall.get_Geometry(options)))
+            {
+                if (line.Reference == null) continue;
+                var d = line.Direction.Normalize();
+                if (Math.Abs(Math.Abs(d.DotProduct(dir)) - 1.0) > 1e-6) continue;
+                var probe = Line.CreateUnbound(line.Origin, d);
+                double dist = probe.Distance(new XYZ(mid.X, mid.Y, line.Origin.Z));
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    best = line.Reference;
+                }
+            }
+            return best;
+        }
+
+        private static IEnumerable<Line> EnumerateLines(GeometryElement geometry)
+        {
+            if (geometry == null) yield break;
+            foreach (var obj in geometry)
+            {
+                if (obj is Line line)
+                {
+                    yield return line;
+                }
+                else if (obj is GeometryInstance gi)
+                {
+                    foreach (var inner in EnumerateLines(gi.GetInstanceGeometry()))
+                        yield return inner;
+                }
+            }
         }
 
         private static bool EnsureViewCanHostAnnotation(View view, out string error)

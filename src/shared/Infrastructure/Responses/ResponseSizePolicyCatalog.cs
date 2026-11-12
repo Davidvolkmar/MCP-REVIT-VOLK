@@ -103,6 +103,7 @@ namespace RvtMcp.Plugin
             ["remove_parameter_binding"] = "Split `categories` into smaller batches or use `dryRun=true`.",
             ["set_parameter_value_by_guid"] = "Split `elementIds` into smaller batches and target one `guid`.",
             ["list_view_templates"] = "Retry with `viewType`/`viewId`, fewer include flags, and a smaller `limit`.",
+            ["inventory_annotation_standards"] = "Retry with fewer `sections`, a `nameContains` filter, and a smaller `limit`.",
             ["apply_view_template"] = "Split `viewIds` into smaller batches and target one `templateId`.",
             ["list_saved_selections"] = "Retry with `nameFilter`, `includeElementIds=false`, `includeElementSummary=false`, and a smaller `limit`.",
             ["select_elements"] = "Retry with fewer `elementIds` or one exact `savedSelectionId`.",

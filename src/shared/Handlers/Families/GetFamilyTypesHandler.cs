@@ -23,10 +23,17 @@ namespace RvtMcp.Plugin.Handlers
                 .OfClass(typeof(FamilySymbol))
                 .WhereElementIsElementType();
 
+            // Resolve language-independently first (OST_DoorTags, "Door Tags", "Etiquetas de puerta");
+            // fall back to the legacy localized-substring match when nothing resolves.
+            var resolvedCategory = string.IsNullOrEmpty(categoryFilter) ? null : CategoryNameResolver.Resolve(doc, categoryFilter);
+            var resolvedCategoryId = resolvedCategory == null ? (long?)null : RevitCompat.GetId(resolvedCategory.Id);
+
             var familyTypes = collector
                 .Cast<FamilySymbol>()
                 .Where(fs => string.IsNullOrEmpty(categoryFilter)
-                             || (fs.Category != null && fs.Category.Name.ToLower().Contains(categoryFilter.ToLower())))
+                             || (fs.Category != null && (resolvedCategoryId.HasValue
+                                 ? RevitCompat.GetId(fs.Category.Id) == resolvedCategoryId.Value
+                                 : fs.Category.Name.ToLower().Contains(categoryFilter.ToLower()))))
                 .GroupBy(fs => fs.Category?.Name ?? "Uncategorized")
                 .Select(g => new
                 {
