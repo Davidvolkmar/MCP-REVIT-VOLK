@@ -27,6 +27,7 @@ namespace RvtMcp.Plugin.Handlers
     ""spot_type_id"": { ""type"": ""integer"" },
     ""offset_x_paper_mm"": { ""type"": ""number"" },
     ""offset_y_paper_mm"": { ""type"": ""number"" },
+    ""clearance_paper_mm"": { ""type"": ""number"" },
     ""room_ids"": { ""type"": ""array"", ""items"": { ""type"": ""integer"" } },
     ""dry_run"": { ""type"": ""boolean"" }
   }
@@ -61,7 +62,7 @@ namespace RvtMcp.Plugin.Handlers
 
             double scale = Math.Max(1, view.Scale);
             double dx = (req.Value<double?>("offset_x_paper_mm") ?? 0) * scale / MmPerFoot;
-            double dy = (req.Value<double?>("offset_y_paper_mm") ?? -8.0) * scale / MmPerFoot;
+            double dy = (req.Value<double?>("offset_y_paper_mm") ?? -14.0) * scale / MmPerFoot;
             bool dryRun = req.Value<bool?>("dry_run") ?? false;
             var onlyIds = (req["room_ids"] as JArray)?.Select(t => t.Value<long>()).ToHashSet();
 
@@ -80,11 +81,38 @@ namespace RvtMcp.Plugin.Handlers
                     if (f.GetGeometryObjectFromReference(r) is Face face) floorFaces.Add(Tuple.Create(r, face, f));
             }
 
+            // Obstacles in plan: wall bodies and grid lines visible in the view.
+            var wallLines = new FilteredElementCollector(doc, view.Id).OfClass(typeof(Wall)).Cast<Wall>()
+                .Select(w => Tuple.Create((w.Location as LocationCurve)?.Curve, w.Width / 2.0))
+                .Where(t => t.Item1 != null).ToList();
+            var gridLines = new FilteredElementCollector(doc, view.Id).OfClass(typeof(Grid)).Cast<Grid>()
+                .Select(g => g.Curve).Where(c => c != null).ToList();
+            double clearance = (req.Value<double?>("clearance_paper_mm") ?? 3.0) * scale / MmPerFoot;
+            double u = scale / MmPerFoot; // one paper mm in feet
+            // Candidate offsets around the room tag (paper mm): requested/default first, then below,
+            // right, left, above, then farther out.
+            var candidates = new List<XYZ> { new XYZ(dx, dy, 0) };
+            foreach (var c in new[] { new[] { 0.0, -14 }, new[] { 0.0, -20 }, new[] { 16.0, -4 }, new[] { -16.0, -4 }, new[] { 0.0, 10 }, new[] { 16.0, -14 }, new[] { -16.0, -14 }, new[] { 0.0, -6 } })
+                candidates.Add(new XYZ(c[0] * u, c[1] * u, 0));
+
             var plan = new JArray(); var skipped = new JArray();
             var work = new List<Tuple<Room, Reference, XYZ>>();
             foreach (var room in rooms)
             {
-                var p = ((LocationPoint)room.Location).Point + new XYZ(dx, dy, 0);
+                var rp = ((LocationPoint)room.Location).Point;
+                double probeZ = (room.Level?.Elevation ?? rp.Z) + 0.5;
+                XYZ p = null; string placement = null;
+                foreach (var off in candidates)
+                {
+                    var q = rp + off;
+                    bool inside; try { inside = room.IsPointInRoom(new XYZ(q.X, q.Y, probeZ)); } catch { inside = false; }
+                    if (!inside) continue;
+                    var q2 = new XYZ(q.X, q.Y, 0);
+                    bool clearOfWalls = wallLines.All(w => DistanceXY(w.Item1, q2) - w.Item2 >= clearance);
+                    bool clearOfGrids = gridLines.All(g => DistanceXY(g, q2) >= clearance * 0.75);
+                    if (clearOfWalls && clearOfGrids) { p = q; placement = Math.Round(off.X / u) + "," + Math.Round(off.Y / u) + " paper mm"; break; }
+                }
+                if (p == null) { p = rp + new XYZ(dx, dy, 0); placement = "fallback (no clear spot found)"; }
                 Tuple<Reference, XYZ, Element> hit = null;
                 foreach (var ff in floorFaces)
                 {
@@ -96,7 +124,7 @@ namespace RvtMcp.Plugin.Handlers
                 }
                 var rid = RevitCompat.GetId(room.Id);
                 if (hit == null) { skipped.Add(new JObject { ["room_id"] = rid, ["room"] = room.Name, ["reason"] = "no floor top face under the mark position" }); continue; }
-                plan.Add(new JObject { ["room_id"] = rid, ["room"] = room.Name, ["floor_id"] = RevitCompat.GetId(hit.Item3.Id), ["elevation_mm"] = Math.Round(hit.Item2.Z * MmPerFoot, 1) });
+                plan.Add(new JObject { ["room_id"] = rid, ["room"] = room.Name, ["floor_id"] = RevitCompat.GetId(hit.Item3.Id), ["elevation_mm"] = Math.Round(hit.Item2.Z * MmPerFoot, 1), ["placement"] = placement });
                 work.Add(Tuple.Create(room, hit.Item1, hit.Item2));
             }
 
@@ -127,6 +155,18 @@ namespace RvtMcp.Plugin.Handlers
             }
             result["created"] = created; result["errors"] = errors;
             return CommandResult.Ok(result);
+        }
+
+        private static double DistanceXY(Curve c, XYZ p)
+        {
+            try
+            {
+                var flat = c is Line l
+                    ? (Curve)Line.CreateBound(new XYZ(l.GetEndPoint(0).X, l.GetEndPoint(0).Y, 0), new XYZ(l.GetEndPoint(1).X, l.GetEndPoint(1).Y, 0))
+                    : c;
+                return flat.Distance(p);
+            }
+            catch { return double.MaxValue; }
         }
     }
 }

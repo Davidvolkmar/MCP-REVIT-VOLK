@@ -2502,9 +2502,13 @@
     },
     {
       "name": "revit_create_room_spot_elevations",
-      "description_hash": "sha256:1e710777c266f2a319a09367f6b3b651a76219c32b6c79d7753718b9ed657b7d",
+      "description_hash": "sha256:f7baa04637591a8fb7f56e14ab3da775cfd4188b334cc998fc5e2454f421f67e",
       "inputSchema": {
         "properties": {
+          "clearancePaperMm": {
+            "description": "",
+            "type": "Double"
+          },
           "dryRun": {
             "description": "",
             "type": "Boolean"

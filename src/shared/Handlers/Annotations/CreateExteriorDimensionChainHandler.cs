@@ -124,6 +124,14 @@ namespace RvtMcp.Plugin.Handlers
                     foreach (var inst in new FilteredElementCollector(doc, view.Id).OfClass(typeof(FamilyInstance)).Cast<FamilyInstance>()
                                  .Where(i => i.Host != null && i.Host.Id == f.Wall.Id))
                     {
+                        // Only openings on the exposed part of the facade wall; doors in a segment hidden
+                        // behind a wall further out are interior openings, not facade openings.
+                        var ip = (inst.Location as LocationPoint)?.Point;
+                        if (ip == null || !exposed[f].Any(iv => A(ip) >= iv[0] - 0.05 && A(ip) <= iv[1] + 0.05))
+                        {
+                            skipped.Add(new JObject { ["opening_id"] = RevitCompat.GetId(inst.Id), ["reason"] = "on a hidden (non-facade) segment of wall " + RevitCompat.GetId(f.Wall.Id) });
+                            continue;
+                        }
                         foreach (var rt in new[] { FamilyInstanceReferenceType.Left, FamilyInstanceReferenceType.Right })
                         {
                             var r = SafeRefs(inst, rt).FirstOrDefault();

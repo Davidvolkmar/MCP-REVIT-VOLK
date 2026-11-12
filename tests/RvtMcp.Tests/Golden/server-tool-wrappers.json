@@ -1368,7 +1368,7 @@
       "calls": [
         {
           "command": "create_room_spot_elevations",
-          "params": "{\"view_id\":null,\"spot_type_id\":null,\"offset_x_paper_mm\":0.0,\"offset_y_paper_mm\":-8.0,\"room_ids\":null,\"dry_run\":false}",
+          "params": "{\"view_id\":null,\"spot_type_id\":null,\"offset_x_paper_mm\":0.0,\"offset_y_paper_mm\":-14.0,\"clearance_paper_mm\":3.0,\"room_ids\":null,\"dry_run\":false}",
           "timeout": null
         }
       ],
@@ -1378,7 +1378,7 @@
       "calls": [
         {
           "command": "create_room_spot_elevations",
-          "params": "{\"view_id\":null,\"spot_type_id\":null,\"offset_x_paper_mm\":0.0,\"offset_y_paper_mm\":-8.0,\"room_ids\":null,\"dry_run\":false}",
+          "params": "{\"view_id\":null,\"spot_type_id\":null,\"offset_x_paper_mm\":0.0,\"offset_y_paper_mm\":-14.0,\"clearance_paper_mm\":3.0,\"room_ids\":null,\"dry_run\":false}",
           "timeout": null
         }
       ],
